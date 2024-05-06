@@ -4,6 +4,8 @@
 #include "nec.h"
 #include "codec.h"
 
+// #define USE_BUZZ
+
 NEC_handler_t ir_handler = {
     .valid = 0,
     .state = IR_IDLE,
@@ -11,22 +13,112 @@ NEC_handler_t ir_handler = {
     .result = 0
 };
 
+char codec_lookup(const uint32_t code);
+void show_input_fail();
+void show_input_success();
 
 uint32_t test[256] = {0};
 uint8_t count = 0;
 HAL_TIM_ActiveChannel hl[256] = {0};
 uint8_t state[256] = {0};
 
+
 void user_main() {
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
+
+    uint8_t input_cursor = 0;
+    uint8_t input[4] = {0};
+
     while(1) {
         if(ir_handler.new && ir_handler.valid) {
             ir_handler.new = false;
+
+            const char signal = codec_lookup(ir_handler.result);
+
+            if(signal<='9' && signal>='0') {
+                show_input_success();
+                input[input_cursor] = signal - '0';
+                ++input_cursor;
+                if(input_cursor >= 4) {
+                    input_cursor = 0;
+                }
+                
+            } else if (signal == '#') {
+                show_input_success();
+                input_cursor = 0;
+            } else {
+                show_input_fail();
+            }
+            
         }
     }
 }
 
+char codec_lookup(const uint32_t code) {
+    switch(code) {
+    case CODEC_0:
+        return '0';
+    case CODEC_1:
+        return '1';
+    case CODEC_2:
+        return '2';
+    case CODEC_3:
+        return '3';
+    case CODEC_4:
+        return '4';
+    case CODEC_5:
+        return '5';
+    case CODEC_6:
+        return '6';
+    case CODEC_7:
+        return '7';
+    case CODEC_8:
+        return '8';
+    case CODEC_9:
+        return '9';
+    case CODEC_STAR:
+        return '*';
+    case CODEC_HASH:
+        return '#';
+    case CODEC_UP:
+        return 'U';
+    case CODEC_DOWN:
+        return 'D';
+    case CODEC_LEFT:
+        return 'L';
+    case CODEC_RIGHT:
+        return 'R';
+    case CODEC_OK:
+        return 'O';
+    default:
+        return '_';
+    }
+}
+
+void show_input_success() {
+    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
+#ifdef USE_BUZZ
+    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
+#endif
+    HAL_Delay(100);
+#ifdef USE_BUZZ
+    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
+#endif
+    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
+}
+
+void show_input_fail() {
+    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
+#ifdef USE_BUZZ
+    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
+#endif
+    HAL_Delay(500);
+#ifdef USE_BUZZ
+    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
+#endif
+    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
+}
 
 void door_open() {
     HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_SET);
