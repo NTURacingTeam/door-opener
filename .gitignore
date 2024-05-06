@@ -1,0 +1,8 @@
+# ignore the build directory, which should contain the compiled binary, sometimes with credentials inside
+build/
+
+# the stm32f1x HAL and CMSIS drivers. Can be spawned by CubeMX
+Drivers/
+
+#the vscode config file
+.vscode/
