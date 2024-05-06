@@ -16,6 +16,7 @@ NEC_handler_t ir_handler = {
 char codec_lookup(const uint32_t code);
 void show_input_fail();
 void show_input_success();
+void show_pass_correct();
 
 uint32_t test[256] = {0};
 uint8_t count = 0;
@@ -42,6 +43,7 @@ void user_main() {
                 ++input_cursor;
                 if(input_cursor >= 4) {
                     input_cursor = 0;
+                    show_pass_correct();
                 }
                 
             } else if (signal == '#') {
@@ -120,10 +122,16 @@ void show_input_fail() {
     HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
 }
 
-void door_open() {
+void show_pass_correct() {
+    HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_SET);
+#ifdef USE_BUZZ
     HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_SET);
-    HAL_Delay(500);
+#endif
+    HAL_Delay(300);
+    HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_RESET);
+#ifdef USE_BUZZ
     HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_RESET);
+#endif
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
@@ -153,6 +161,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     }
 }
 
+// might want to check out the potential bug
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     NEC_reset(&ir_handler);
 }
