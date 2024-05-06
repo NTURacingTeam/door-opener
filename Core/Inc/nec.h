@@ -1,6 +1,9 @@
 #ifndef __NEC_H
 #define __NEC_H
 
+#include "stdbool.h"
+#include "stdint.h"
+
 // burst time for NEC IR codec, in microseconds
 #define NEC_TIME_START_HIGH 9000
 #define NEC_TIME_START_LOW 4500
