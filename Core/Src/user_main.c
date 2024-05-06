@@ -17,6 +17,7 @@ char codec_lookup(const uint32_t code);
 void show_input_fail();
 void show_input_success();
 void show_pass_correct();
+void show_pass_wrong();
 
 void user_main() {
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
@@ -24,9 +25,11 @@ void user_main() {
 
     uint8_t input_cursor = 0;
     uint8_t input[4] = {0};
+    uint32_t tick = HAL_GetTick();
 
     while(1) {
         if(ir_handler.new && ir_handler.valid) {
+            tick = HAL_GetTick();
             ir_handler.new = false;
 
             const char signal = codec_lookup(ir_handler.result);
@@ -46,9 +49,11 @@ void user_main() {
             //check if four inputs have been made
             if(input_cursor >= 4) {
                 input_cursor = 0;
-                show_pass_correct();
+                show_pass_wrong();
             }
-            
+        } else if(input_cursor != 0 && (HAL_GetTick() - tick > 5000 || tick > HAL_GetTick())) {
+            show_pass_wrong();
+            input_cursor = 0;
         }
     }
 }
@@ -109,6 +114,18 @@ void show_pass_correct() {
 #endif
     HAL_Delay(300);
     HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_RESET);
+#ifdef USE_BUZZ
+    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_RESET);
+#endif
+}
+
+void show_pass_wrong() {
+    HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_SET);
+#ifdef USE_BUZZ
+    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_SET);
+#endif
+    HAL_Delay(1000);
+    HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_RESET);
 #ifdef USE_BUZZ
     HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_RESET);
 #endif
