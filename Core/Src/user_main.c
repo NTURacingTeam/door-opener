@@ -18,12 +18,6 @@ void show_input_fail();
 void show_input_success();
 void show_pass_correct();
 
-uint32_t test[256] = {0};
-uint8_t count = 0;
-HAL_TIM_ActiveChannel hl[256] = {0};
-uint8_t state[256] = {0};
-
-
 void user_main() {
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
@@ -37,24 +31,87 @@ void user_main() {
 
             const char signal = codec_lookup(ir_handler.result);
 
+            //handle input signal, and update the input register
             if(signal<='9' && signal>='0') {
                 show_input_success();
                 input[input_cursor] = signal - '0';
                 ++input_cursor;
-                if(input_cursor >= 4) {
-                    input_cursor = 0;
-                    show_pass_correct();
-                }
-                
             } else if (signal == '#') {
                 show_input_success();
                 input_cursor = 0;
             } else {
                 show_input_fail();
             }
+
+            //check if four inputs have been made
+            if(input_cursor >= 4) {
+                input_cursor = 0;
+                show_pass_correct();
+            }
             
         }
     }
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
+
+    const uint32_t capture_time_1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+    const uint32_t capture_time_2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+
+    switch(htim->Channel) {
+    case HAL_TIM_ACTIVE_CHANNEL_1: //falling edge
+        NEC_append_low(&ir_handler, capture_time_1 - capture_time_2);
+        break;
+
+    case HAL_TIM_ACTIVE_CHANNEL_2: //rising edge
+        NEC_append_high(&ir_handler, capture_time_2);
+        break;
+
+    default:
+        Error_Handler(); // not suppose to be here
+        break;
+    }
+}
+
+// might want to check out the potential bug
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    NEC_reset(&ir_handler);
+}
+
+void show_input_success() {
+    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
+#ifdef USE_BUZZ
+    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
+#endif
+    HAL_Delay(100);
+#ifdef USE_BUZZ
+    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
+#endif
+    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
+}
+
+void show_input_fail() {
+    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
+#ifdef USE_BUZZ
+    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
+#endif
+    HAL_Delay(500);
+#ifdef USE_BUZZ
+    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
+#endif
+    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
+}
+
+void show_pass_correct() {
+    HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_SET);
+#ifdef USE_BUZZ
+    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_SET);
+#endif
+    HAL_Delay(300);
+    HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_RESET);
+#ifdef USE_BUZZ
+    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_RESET);
+#endif
 }
 
 char codec_lookup(const uint32_t code) {
@@ -96,72 +153,4 @@ char codec_lookup(const uint32_t code) {
     default:
         return '_';
     }
-}
-
-void show_input_success() {
-    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
-#ifdef USE_BUZZ
-    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
-#endif
-    HAL_Delay(100);
-#ifdef USE_BUZZ
-    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
-#endif
-    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
-}
-
-void show_input_fail() {
-    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
-#ifdef USE_BUZZ
-    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
-#endif
-    HAL_Delay(500);
-#ifdef USE_BUZZ
-    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
-#endif
-    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
-}
-
-void show_pass_correct() {
-    HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_SET);
-#ifdef USE_BUZZ
-    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_SET);
-#endif
-    HAL_Delay(300);
-    HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_RESET);
-#ifdef USE_BUZZ
-    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_RESET);
-#endif
-}
-
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
-
-    const uint32_t capture_time_1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-    const uint32_t capture_time_2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
-    hl[count] = htim->Channel;
-    state[count] = ir_handler.state;
-
-
-    switch(htim->Channel) {
-    case HAL_TIM_ACTIVE_CHANNEL_1: //falling edge
-        test[count] = capture_time_1;
-        count++;
-        NEC_append_low(&ir_handler, capture_time_1 - capture_time_2);
-        break;
-
-    case HAL_TIM_ACTIVE_CHANNEL_2: //rising edge
-        test[count] = capture_time_2;
-        count++;
-        NEC_append_high(&ir_handler, capture_time_2);
-        break;
-
-    default:
-        Error_Handler(); // not suppose to be here
-        break;
-    }
-}
-
-// might want to check out the potential bug
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    NEC_reset(&ir_handler);
 }
