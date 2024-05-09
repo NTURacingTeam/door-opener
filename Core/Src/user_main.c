@@ -136,12 +136,14 @@ void show_pass_correct() {
 void show_pass_wrong() {
     HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_SET);
 #ifdef USE_BUZZ
+    __HAL_TIM_SET_PRESCALER(&htim3, 2000-1);
     HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
 #endif
     HAL_Delay(1000);
     HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_RESET);
 #ifdef USE_BUZZ
     HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
+    __HAL_TIM_SET_PRESCALER(&htim3, 1000-1);
 #endif
 }
 
