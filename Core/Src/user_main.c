@@ -4,7 +4,16 @@
 #include "nec.h"
 #include "codec.h"
 
-// #define USE_BUZZ
+#define USE_BUZZ
+
+#ifndef GATE_PASSWORD
+#pragma message ( "no GATE_PASSWORD specified. Using 1234" )
+#define GATE_PASSWORD "1234"
+#else
+#pragma message ( "GATE_PASSWORD specified." )
+#endif
+
+static const char password[4] = GATE_PASSWORD;
 
 NEC_handler_t ir_handler = {
     .valid = 0,
@@ -18,26 +27,27 @@ void show_input_fail();
 void show_input_success();
 void show_pass_correct();
 void show_pass_wrong();
+bool check_input(const char* input, const char* password);
 
 void user_main() {
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
 
     uint8_t input_cursor = 0;
-    uint8_t input[4] = {0};
-    uint32_t tick = HAL_GetTick();
+    char input[4] = {0};
+    uint32_t last_input_time = HAL_GetTick();
 
     while(1) {
         if(ir_handler.new && ir_handler.valid) {
-            tick = HAL_GetTick();
-            ir_handler.new = false;
-
             const char signal = codec_lookup(ir_handler.result);
+            ir_handler.new = false;
+            last_input_time = HAL_GetTick();
+
 
             //handle input signal, and update the input register
             if(signal<='9' && signal>='0') {
                 show_input_success();
-                input[input_cursor] = signal - '0';
+                input[input_cursor] = signal;
                 ++input_cursor;
             } else if (signal == '#') {
                 show_input_success();
@@ -49,9 +59,13 @@ void user_main() {
             //check if four inputs have been made
             if(input_cursor >= 4) {
                 input_cursor = 0;
-                show_pass_wrong();
+                if(check_input(input, password)) {
+                    show_pass_correct();
+                } else {
+                    show_pass_wrong();
+                }
             }
-        } else if(input_cursor != 0 && (HAL_GetTick() - tick > 5000 || tick > HAL_GetTick())) {
+        } else if(input_cursor != 0 && (HAL_GetTick() - last_input_time > 5000 || last_input_time > HAL_GetTick())) {
             show_pass_wrong();
             input_cursor = 0;
         }
@@ -122,13 +136,20 @@ void show_pass_correct() {
 void show_pass_wrong() {
     HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_SET);
 #ifdef USE_BUZZ
-    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_SET);
+    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
 #endif
     HAL_Delay(1000);
     HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_RESET);
 #ifdef USE_BUZZ
-    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_RESET);
+    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
 #endif
+}
+
+bool check_input(const char* input, const char* password) {
+    for(int i = 0; i < 4; i++) {
+        if(input[i] != password[i]) return false;
+    }
+    return true;
 }
 
 char codec_lookup(const uint32_t code) {

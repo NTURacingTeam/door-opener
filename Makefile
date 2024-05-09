@@ -106,6 +106,7 @@ C_DEFS =  \
 -DUSE_HAL_DRIVER \
 -DSTM32F103xB
 
+C_DEFS += $(USER_DEFS)
 
 # AS includes
 AS_INCLUDES = 
