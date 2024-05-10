@@ -1,10 +1,10 @@
 #include "main.h"
 #include "user_main.h"
-#include "buzz.h"
 #include "nec.h"
 #include "codec.h"
+#include "ui_feedback.h"
 
-#define USE_BUZZ
+// #define USE_BUZZ
 
 #ifndef GATE_PASSWORD
 #pragma message ( "no GATE_PASSWORD specified. Using 1234" )
@@ -23,11 +23,8 @@ NEC_handler_t ir_handler = {
 };
 
 char codec_lookup(const uint32_t code);
-void show_input_fail();
-void show_input_success();
-void show_pass_correct();
-void show_pass_wrong();
 bool check_input(const char* input, const char* password);
+void open_door();
 
 void user_main() {
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
@@ -46,30 +43,39 @@ void user_main() {
 
             //handle input signal, and update the input register
             if(signal<='9' && signal>='0') {
-                show_input_success();
+                show_input_success(YELLOW_GPIO_Port, YELLOW_Pin, &htim3, TIM_CHANNEL_1);
                 input[input_cursor] = signal;
                 ++input_cursor;
             } else if (signal == '#') {
-                show_input_success();
+                show_input_success(YELLOW_GPIO_Port, YELLOW_Pin, &htim3, TIM_CHANNEL_1);
                 input_cursor = 0;
             } else {
-                show_input_fail();
+                show_input_fail(YELLOW_GPIO_Port, YELLOW_Pin, &htim3, TIM_CHANNEL_1);
             }
 
             //check if four inputs have been made
             if(input_cursor >= 4) {
                 input_cursor = 0;
                 if(check_input(input, password)) {
-                    show_pass_correct();
+                    show_pass_correct(GREEN_GPIO_Port, GREEN_Pin, &htim3, TIM_CHANNEL_1);
+                    open_door();
                 } else {
-                    show_pass_wrong();
+                    show_pass_wrong(RED_GPIO_Port, RED_Pin, &htim3, TIM_CHANNEL_1);
                 }
             }
         } else if(input_cursor != 0 && (HAL_GetTick() - last_input_time > 5000 || last_input_time > HAL_GetTick())) {
-            show_pass_wrong();
+            show_pass_wrong(RED_GPIO_Port, RED_Pin, &htim3, TIM_CHANNEL_1);
             input_cursor = 0;
         }
     }
+}
+
+void open_door() {
+#ifdef USE_BUZZ
+    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_SET);
+    HAL_Delay(300);
+    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_RESET);
+#endif
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
@@ -92,59 +98,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     }
 }
 
-// might want to check out the potential bug
+// might want to check out the potential bug when a pulse from the IR remote is so long that it overflows the timer
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     NEC_reset(&ir_handler);
-}
-
-void show_input_success() {
-    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
-#ifdef USE_BUZZ
-    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
-#endif
-    HAL_Delay(100);
-#ifdef USE_BUZZ
-    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
-#endif
-    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
-}
-
-void show_input_fail() {
-    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
-#ifdef USE_BUZZ
-    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
-#endif
-    HAL_Delay(500);
-#ifdef USE_BUZZ
-    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
-#endif
-    HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
-}
-
-void show_pass_correct() {
-    HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_SET);
-#ifdef USE_BUZZ
-    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_SET);
-#endif
-    HAL_Delay(300);
-    HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_RESET);
-#ifdef USE_BUZZ
-    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_RESET);
-#endif
-}
-
-void show_pass_wrong() {
-    HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_SET);
-#ifdef USE_BUZZ
-    __HAL_TIM_SET_PRESCALER(&htim3, 2000-1);
-    HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
-#endif
-    HAL_Delay(1000);
-    HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_RESET);
-#ifdef USE_BUZZ
-    HAL_TIM_OC_Stop(&htim3, TIM_CHANNEL_1);
-    __HAL_TIM_SET_PRESCALER(&htim3, 1000-1);
-#endif
 }
 
 bool check_input(const char* input, const char* password) {
