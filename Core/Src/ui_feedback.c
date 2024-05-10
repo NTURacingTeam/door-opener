@@ -2,7 +2,13 @@
 #include "music_note.h"
 #include "stm32f1xx_hal.h"
 
-#define USE_BUZZ
+void open_door(GPIO_TypeDef* door_port, uint16_t door_pin) {
+#ifdef USE_BUZZ
+    HAL_GPIO_WritePin(door_port, door_pin, GPIO_PIN_SET);
+    HAL_Delay(300);
+    HAL_GPIO_WritePin(door_port, door_pin, GPIO_PIN_RESET);
+#endif
+}
 
 void show_input_success(GPIO_TypeDef* light_port, uint16_t light_pin, TIM_HandleTypeDef *htim, uint32_t TIM_Channel) {
     HAL_GPIO_WritePin(light_port, light_pin, GPIO_PIN_SET);

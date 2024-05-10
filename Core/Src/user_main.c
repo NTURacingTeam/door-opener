@@ -4,15 +4,6 @@
 #include "codec.h"
 #include "ui_feedback.h"
 
-// #define USE_BUZZ
-
-#ifndef GATE_PASSWORD
-#pragma message ( "no GATE_PASSWORD specified. Using 1234" )
-#define GATE_PASSWORD "1234"
-#else
-#pragma message ( "GATE_PASSWORD specified." )
-#endif
-
 static const char password[4] = GATE_PASSWORD;
 
 NEC_handler_t ir_handler = {
@@ -24,7 +15,6 @@ NEC_handler_t ir_handler = {
 
 char codec_lookup(const uint32_t code);
 bool check_input(const char* input, const char* password);
-void open_door();
 
 void user_main() {
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
@@ -58,7 +48,7 @@ void user_main() {
                 input_cursor = 0;
                 if(check_input(input, password)) {
                     show_pass_correct(GREEN_GPIO_Port, GREEN_Pin, &htim3, TIM_CHANNEL_1);
-                    open_door();
+                    open_door(RELAY_GPIO_Port, RELAY_Pin);
                 } else {
                     show_pass_wrong(RED_GPIO_Port, RED_Pin, &htim3, TIM_CHANNEL_1);
                 }
@@ -68,14 +58,6 @@ void user_main() {
             input_cursor = 0;
         }
     }
-}
-
-void open_door() {
-#ifdef USE_BUZZ
-    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_SET);
-    HAL_Delay(300);
-    HAL_GPIO_WritePin(RELAY_GPIO_Port, RELAY_Pin, GPIO_PIN_RESET);
-#endif
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {

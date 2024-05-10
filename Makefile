@@ -184,8 +184,30 @@ clean:
 	-rm -fR $(BUILD_DIR)
 
 #######################################
-# flash and install
+# custom targets
 #######################################
+
+# overwriting default targets for user_main to include custom building defines
+$(BUILD_DIR)/user_main.o: user_main.c Makefile | $(BUILD_DIR)
+ifdef GATE_PASSWORD
+	$(warning $(CYAN)GATE_PASSWORD defined. building with specified password$(RESET))
+	$(CC) -c $(CFLAGS) -DGATE_PASSWORD=\"$(GATE_PASSWORD)\" -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+else 
+	$(warning $(YELLOW)GATE_PASSWORD undefined. using default value 1234$(RESET))
+	$(CC) -c $(CFLAGS) -DGATE_PASSWORD=\"1234\" -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+endif
+
+# overwriting default targets for ui_feedback to include custom building defines
+$(BUILD_DIR)/ui_feedback.o: ui_feedback.c Makefile | $(BUILD_DIR)	
+ifdef USE_BUZZ
+	$(warning $(CYAN)USE_BUZZ defined. enabling buzzers and relays$(RESET))
+	$(CC) -c $(CFLAGS) -DUSE_BUZZ -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+else
+	$(warning $(YELLOW)USE_BUZZ not defined. disabling buzzers and relays$(RESET))
+	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+endif
+
+# flash the built program onto the board
 install: | $(BUILD_DIR)/$(TARGET).bin
 	st-flash --reset write $| 0x08000000
 

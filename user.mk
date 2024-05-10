@@ -9,7 +9,9 @@ Core/Src/ui_feedback.c
 
 USER_DEFS = 
 
-ifdef GATE_PASSWORD
-USER_DEFS += -DGATE_PASSWORD=\"$(GATE_PASSWORD)\"
-endif
-
+# custom variables to output colored texts
+RED=$(shell tput setaf 1)
+RESET=$(shell tput sgr0)
+BOLD=$(shell tput bold)
+YELLOW=$(shell tput setaf 3)
+CYAN=$(shell tput setaf 6)
