@@ -44,6 +44,7 @@ extern "C" {
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim1;
+extern IWDG_HandleTypeDef hiwdg;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

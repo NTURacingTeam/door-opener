@@ -19,6 +19,8 @@ bool check_input(const char* input, const char* password);
 static bool check_stayalive = false;
 
 void user_main() {
+    HAL_IWDG_Refresh(&hiwdg);
+
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
 
@@ -64,6 +66,7 @@ void user_main() {
         }
         if(check_stayalive) {
             HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_RESET);
+            HAL_IWDG_Refresh(&hiwdg);
             check_stayalive = false;
         }
     }
