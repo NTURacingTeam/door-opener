@@ -43,6 +43,7 @@ extern "C" {
 /* USER CODE BEGIN EC */
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
+extern TIM_HandleTypeDef htim1;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

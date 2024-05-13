@@ -16,9 +16,14 @@ NEC_handler_t ir_handler = {
 char codec_lookup(const uint32_t code);
 bool check_input(const char* input, const char* password);
 
+static bool check_stayalive = false;
+
 void user_main() {
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
     HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
+
+    __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);
+    HAL_TIM_PWM_Start_IT(&htim1, TIM_CHANNEL_4);
 
     uint8_t input_cursor = 0;
     char input[4] = {0};
@@ -57,6 +62,10 @@ void user_main() {
             show_pass_wrong(RED_GPIO_Port, RED_Pin, &htim3, TIM_CHANNEL_1);
             input_cursor = 0;
         }
+        if(check_stayalive) {
+            HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_RESET);
+            check_stayalive = false;
+        }
     }
 }
 
@@ -80,10 +89,19 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     }
 }
 
-// might want to check out the potential bug when a pulse from the IR remote is so long that it overflows the timer
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    NEC_reset(&ir_handler);
+    if(htim == &htim1) {
+        HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_SET);
+    } else if(htim == &htim4) {
+        // might want to check out the potential bug when a pulse from the IR remote is so long that it overflows the timer
+        NEC_reset(&ir_handler);
+    }
 }
+
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
+    check_stayalive = true;
+}
+
 
 bool check_input(const char* input, const char* password) {
     for(int i = 0; i < 4; i++) {
