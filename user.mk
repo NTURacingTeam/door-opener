@@ -5,7 +5,8 @@
 USER_SOURCES = \
 Core/Src/user_main.c \
 Core/Src/nec.c \
-Core/Src/ui_feedback.c
+Core/Src/ui_feedback.c \
+Core/Src/play_note.c
 
 USER_DEFS = 
 

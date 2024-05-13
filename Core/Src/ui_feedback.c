@@ -1,6 +1,8 @@
 #include "ui_feedback.h"
 #include "music_note.h"
 #include "stm32f1xx_hal.h"
+#include "play_note.h"
+
 
 void open_door(GPIO_TypeDef* door_port, uint16_t door_pin) {
 #ifdef USE_BUZZ
@@ -40,24 +42,7 @@ void show_pass_correct(GPIO_TypeDef* light_port, uint16_t light_pin, TIM_HandleT
     HAL_GPIO_WritePin(light_port, light_pin, GPIO_PIN_SET);
     HAL_Delay(300);
 #ifdef USE_BUZZ
-    __HAL_TIM_SET_PRESCALER(htim, 1000000/NOTE_C);
-    HAL_TIM_OC_Start(htim, TIM_Channel);
-    HAL_Delay(500);
-    __HAL_TIM_SET_PRESCALER(htim, 1000000/NOTE_D);
-    HAL_Delay(500);
-    __HAL_TIM_SET_PRESCALER(htim, 1000000/NOTE_E);
-    HAL_Delay(500);
-    __HAL_TIM_SET_PRESCALER(htim, 1000000/NOTE_F);
-    HAL_Delay(500);
-    __HAL_TIM_SET_PRESCALER(htim, 1000000/NOTE_G);
-    HAL_Delay(500);
-    __HAL_TIM_SET_PRESCALER(htim, 1000000/NOTE_A);
-    HAL_Delay(500);
-    __HAL_TIM_SET_PRESCALER(htim, 1000000/NOTE_B);
-    HAL_Delay(500);
-    __HAL_TIM_SET_PRESCALER(htim, 1000000/NOTE_CC);
-    HAL_Delay(500);
-    HAL_TIM_OC_Stop(htim, TIM_CHANNEL_1);
+    play_song(htim, TIM_Channel);
 #endif
     HAL_GPIO_WritePin(light_port, light_pin, GPIO_PIN_RESET);
 }
