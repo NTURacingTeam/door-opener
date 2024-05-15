@@ -15,6 +15,7 @@ NEC_handler_t ir_handler = {
 
 char codec_lookup(const uint32_t code);
 bool check_input(const char* input, const char* password);
+void clear_input(char* input);
 
 static bool check_stayalive = false;
 
@@ -28,7 +29,7 @@ void user_main() {
     HAL_TIM_PWM_Start_IT(&htim1, TIM_CHANNEL_4);
 
     uint8_t input_cursor = 0;
-    char input[4] = {0};
+    char input[sizeof(password)/sizeof(char)] = {0};
     uint32_t last_input_time = HAL_GetTick();
 
     while(1) {
@@ -51,7 +52,7 @@ void user_main() {
             }
 
             //check if four inputs have been made
-            if(input_cursor >= 4) {
+            if(input_cursor >= sizeof(password)/sizeof(char)) {
                 input_cursor = 0;
                 if(check_input(input, password)) {
                     show_pass_correct(GREEN_GPIO_Port, GREEN_Pin, &htim3, TIM_CHANNEL_1);
@@ -59,6 +60,7 @@ void user_main() {
                 } else {
                     show_pass_wrong(RED_GPIO_Port, RED_Pin, &htim3, TIM_CHANNEL_1);
                 }
+                clear_input(input);
             }
         } else if(input_cursor != 0 && (HAL_GetTick() - last_input_time > 5000 || last_input_time > HAL_GetTick())) {
             show_pass_wrong(RED_GPIO_Port, RED_Pin, &htim3, TIM_CHANNEL_1);
@@ -107,10 +109,16 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
 
 
 bool check_input(const char* input, const char* password) {
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < sizeof(password)/sizeof(char); i++) {
         if(input[i] != password[i]) return false;
     }
     return true;
+}
+
+void clear_input(char* input) {
+    for(int i = 0; i < sizeof(password)/sizeof(char); ++i) {
+        input[i] = 0;
+    }
 }
 
 char codec_lookup(const uint32_t code) {
