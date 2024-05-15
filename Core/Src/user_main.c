@@ -4,7 +4,7 @@
 #include "codec.h"
 #include "ui_feedback.h"
 
-static const char password[4] = GATE_PASSWORD;
+static const char password[6] = GATE_PASSWORD;
 
 NEC_handler_t ir_handler = {
     .valid = 0,
@@ -45,10 +45,12 @@ void user_main() {
                 input[input_cursor] = signal;
                 ++input_cursor;
             } else if (signal == '#') {
-                show_input_success(YELLOW_GPIO_Port, YELLOW_Pin, &htim3, TIM_CHANNEL_1);
+                show_input_fail(YELLOW_GPIO_Port, YELLOW_Pin, &htim3, TIM_CHANNEL_1);
                 input_cursor = 0;
             } else {
-                show_input_fail(YELLOW_GPIO_Port, YELLOW_Pin, &htim3, TIM_CHANNEL_1);
+                show_input_success(YELLOW_GPIO_Port, YELLOW_Pin, &htim3, TIM_CHANNEL_1);
+                input[input_cursor] = signal;
+                ++input_cursor;
             }
 
             //check if four inputs have been made
