@@ -194,8 +194,8 @@ ifdef GATE_PASSWORD
 	$(warning $(CYAN)GATE_PASSWORD defined. building with specified password$(RESET))
 	$(CC) -c $(CFLAGS) -DGATE_PASSWORD=\"$(GATE_PASSWORD)\" -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 else 
-	$(warning $(YELLOW)GATE_PASSWORD undefined. using default value 1234$(RESET))
-	$(CC) -c $(CFLAGS) -DGATE_PASSWORD=\"1234\" -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
+	$(warning $(YELLOW)GATE_PASSWORD undefined. using default value 123456$(RESET))
+	$(CC) -c $(CFLAGS) -DGATE_PASSWORD=\"123456\" -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 endif
 
 # overwriting default targets for ui_feedback to include custom building defines
